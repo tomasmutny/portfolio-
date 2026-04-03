@@ -743,13 +743,13 @@ function renderOverview() {
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Globální / měsíc</div>
-        <div class="stat-value c-blue">${gT.eur}€${gT.usd?` +${gT.usd}$`:''}</div>
+        <div class="stat-value c-blue">${gT.eur}€${gT.usd > 0 ? ' <span style="font-size:15px;color:var(--blue-t);">+' + gT.usd + '$</span>' : ''}</div>
         <div class="stat-sub">aktivní pozice</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Evropa / měsíc</div>
-        <div class="stat-value c-blue">${eT.eur}€</div>
-        <div class="stat-sub">${eT.usd > 0 ? '+ ' + eT.usd + '$ USD' : 'aktivní pozice'}</div>
+        <div class="stat-value c-blue">${eT.eur}€${eT.usd > 0 ? ' <span style="font-size:15px;color:var(--blue-t);">+' + eT.usd + '$</span>' : ''}</div>
+        <div class="stat-sub">aktivní pozice</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Hotovo</div>
@@ -806,9 +806,9 @@ function renderEurope() {
   document.getElementById('s-europe').innerHTML = `
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Investováno EUR</div>
-        <div class="stat-value c-blue">${t.eur}€</div>
-        <div class="stat-sub">${t.usd > 0 ? '+ ' + t.usd + '$ USD' : 'aktivní pozice'}</div>
+        <div class="stat-label">Investováno</div>
+        <div class="stat-value c-blue">${t.eur}€${t.usd > 0 ? ' <span style="font-size:15px;color:var(--blue-t);">+' + t.usd + '$</span>' : ''}</div>
+        <div class="stat-sub">aktivní pozice</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Stav</div>
