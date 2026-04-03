@@ -632,15 +632,22 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 1800);
 }
 function parseAmt(s) {
-  const n = (s||'').match(/[\d.]+/g);
-  return n ? n.reduce((a,b)=>a+parseFloat(b),0) : 0;
+  // Only first number before any arrow/bracket
+  const clean = (s||'').split(/[\u2192\(\[<]/)[0].trim();
+  const n = clean.match(/[\d.]+/);
+  return n ? parseFloat(n[0]) : 0;
+}
+function firstCurrency(s) {
+  const clean = (s||'').split(/[\u2192\(\[<]/)[0].trim();
+  if (clean.includes('$') && !clean.includes('\u20ac')) return 'usd';
+  return 'eur';
 }
 function totals(arr) {
   let eur=0, usd=0;
   arr.filter(p=>p.status!=='paused').forEach(p=>{
-    const a = p.amount||'';
-    const isUsd = a.includes('$') && !a.includes('€');
-    if(isUsd) usd+=parseAmt(a); else eur+=parseAmt(a);
+    const cur = firstCurrency(p.amount||'');
+    if (cur === 'usd') usd += parseAmt(p.amount);
+    else eur += parseAmt(p.amount);
   });
   return {eur:Math.round(eur), usd:Math.round(usd)};
 }
@@ -742,7 +749,7 @@ function renderOverview() {
       <div class="stat-card">
         <div class="stat-label">Evropa / měsíc</div>
         <div class="stat-value c-blue">${eT.eur}€</div>
-        <div class="stat-sub">aktivní pozice</div>
+        <div class="stat-sub">${eT.usd > 0 ? '+ ' + eT.usd + '$ USD' : 'aktivní pozice'}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Hotovo</div>
@@ -799,9 +806,9 @@ function renderEurope() {
   document.getElementById('s-europe').innerHTML = `
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Investováno</div>
+        <div class="stat-label">Investováno EUR</div>
         <div class="stat-value c-blue">${t.eur}€</div>
-        <div class="stat-sub">aktivní pozice</div>
+        <div class="stat-sub">${t.usd > 0 ? '+ ' + t.usd + '$ USD' : 'aktivní pozice'}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Stav</div>
