@@ -519,7 +519,7 @@ const ALL_MONTHS = [
     ]
   },
   {
-    id:'2026-03', label:'Březen 2026', readonly:true,
+    id:'2026-03', label:'Březen 2026', readonly:false,
     global:[
       {ticker:'ASML', amount:'32€', status:'done', note:''},
       {ticker:'IS3N', amount:'20€', status:'done', note:'EM small cap'},
@@ -538,63 +538,83 @@ const ALL_MONTHS = [
     europe:[
       {ticker:'600BANKS', amount:'80€', status:'done', note:''},
       {ticker:'CSG', amount:'20€', status:'done', note:'Czechoslovak Group — sníženo z 40€'},
-      {ticker:'DFNS', amount:'120€', status:'done', note:'Evropská obrana ETF'},
+      {ticker:'DFNS', amount:'120€ (zbývá 80€)', status:'pending', note:'Nakoupeno jen 40€, zbývá doplatit 80€'},
       {ticker:'Rheinmetall', amount:'80€', status:'done', note:''},
-      {ticker:'Novo Nordisk', amount:'40€', status:'done', note:''},
+      {ticker:'ERO Copper', amount:'150$', status:'done', note:'Místo Novo Nordisk — copper thesis'},
       {ticker:'NUKL', amount:'40€', status:'done', note:'Uranium + Nuclear ETF — náhrada za zlato'},
       {ticker:'4GLD', amount:'40€', status:'paused', note:'Pausováno'},
+      {ticker:'Stoxx 600', amount:'40€', status:'paused', note:'Ukončeno'},
     ],
     changes:[
       {ticker:'NUKL', type:'new', detail:'Nová pozice 40€ — náhrada za zlato v evropském portfoliu'},
       {ticker:'CEG + GEV + CCJ + VRT + VST', type:'new', detail:'Energy pozice za uvolněných 187€ (zlato + VWCE)'},
+      {ticker:'ERO Copper', type:'new', detail:'Místo Novo Nordisk — 150$ do copper (ERO Copper)'},
       {ticker:'4GLD (obě portfolia)', type:'pause', detail:'Pausováno — čekat na $2,500–2,600/oz'},
       {ticker:'VWCE', type:'pause', detail:'Pausováno — překryv s VUAA'},
       {ticker:'VUAA + BERKSHIRE', type:'pause', detail:'Pauza — vrátit až S&P500 klesne'},
       {ticker:'CSG', type:'reduce', detail:'Sníženo z 40€ na 20€ — nová firma, vyšší riziko'},
+      {ticker:'Stoxx 600', type:'pause', detail:'Ukončeno — přesměrováno jinam'},
     ]
   },
 ];
 
-// Current editable month - April 2026
-const CURRENT_MONTH_ID = '2026-04';
-const CURRENT_MONTH_LABEL = 'Duben 2026';
+// Future empty months April–December 2026
+const FUTURE_MONTHS = [
+  {id:'2026-04', label:'Duben 2026',    readonly:false, global:[], europe:[], changes:[]},
+  {id:'2026-05', label:'Květen 2026',   readonly:false, global:[], europe:[], changes:[]},
+  {id:'2026-06', label:'Červen 2026',   readonly:false, global:[], europe:[], changes:[]},
+  {id:'2026-07', label:'Červenec 2026', readonly:false, global:[], europe:[], changes:[]},
+  {id:'2026-08', label:'Srpen 2026',    readonly:false, global:[], europe:[], changes:[]},
+  {id:'2026-09', label:'Září 2026',     readonly:false, global:[], europe:[], changes:[]},
+  {id:'2026-10', label:'Říjen 2026',    readonly:false, global:[], europe:[], changes:[]},
+  {id:'2026-11', label:'Listopad 2026', readonly:false, global:[], europe:[], changes:[]},
+  {id:'2026-12', label:'Prosinec 2026', readonly:false, global:[], europe:[], changes:[]},
+];
 
-const DEFAULT_APRIL = {
-  id: CURRENT_MONTH_ID,
-  label: CURRENT_MONTH_LABEL,
-  readonly: false,
-  global: [],
-  europe: [],
-  changes: []
-};
-
-function loadCurrentMonth() {
-  try {
-    const s = localStorage.getItem('ptv4-current');
-    return s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_APRIL));
-  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_APRIL)); }
+// Load saved edits for any editable month from localStorage
+function loadMonthEdits(id) {
+  try { const s = localStorage.getItem('ptv4-'+id); return s ? JSON.parse(s) : null; }
+  catch(e) { return null; }
 }
-function saveCurrentMonth(d) {
-  try { localStorage.setItem('ptv4-current', JSON.stringify(d)); } catch(e) {}
+function saveMonthEdits(id, data) {
+  try { localStorage.setItem('ptv4-'+id, JSON.stringify({global:data.global, europe:data.europe, changes:data.changes})); }
+  catch(e) {}
 }
 
-let CURRENT = loadCurrentMonth();
-// Full list with editable month appended
+// Apply saved edits to Březen (last in ALL_MONTHS) and to all future months
+const brezEdits = loadMonthEdits('2026-03');
+if (brezEdits) {
+  const bm = ALL_MONTHS[ALL_MONTHS.length-1];
+  bm.global = brezEdits.global; bm.europe = brezEdits.europe; bm.changes = brezEdits.changes;
+}
+FUTURE_MONTHS.forEach(fm => {
+  const saved = loadMonthEdits(fm.id);
+  if (saved) { fm.global = saved.global; fm.europe = saved.europe; fm.changes = saved.changes; }
+});
+
 function getAllMonths() {
-  return [...ALL_MONTHS, CURRENT];
+  return [...ALL_MONTHS, ...FUTURE_MONTHS];
+}
+
+// CURRENT = the month currently being viewed/edited
+let CURRENT = ALL_MONTHS[ALL_MONTHS.length - 1];
+
+function saveCurrentMonth(d) {
+  saveMonthEdits(d.id, d);
 }
 
 // ── MONTH NAVIGATION ──────────────────────────────────────────────────────────
-let viewIdx = getAllMonths().length - 1; // start at current month
+// Start at Duben 2026 = index ALL_MONTHS.length (first future month)
+let viewIdx = ALL_MONTHS.length;
 
 function updateMonthNav() {
   const months = getAllMonths();
   const m = months[viewIdx];
-  const isCurrent = !m.readonly;
+  const isActualCurrent = m.id === '2026-04'; // Duben 2026 = skutečný aktuální měsíc
   document.getElementById('btn-prev').disabled = viewIdx === 0;
   document.getElementById('btn-next').disabled = viewIdx === months.length - 1;
   document.getElementById('month-label').innerHTML =
-    m.label + (isCurrent ? '<span class="month-current-dot"></span>' : '');
+    m.label + (isActualCurrent ? '<span class="month-current-dot"></span>' : '');
 }
 function prevMonth() {
   if (viewIdx > 0) { viewIdx--; updateMonthNav(); renderAll(); window.scrollTo(0,0); }
@@ -654,15 +674,20 @@ function emptyState(msg) {
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 function toggle(portfolio, idx) {
-  if (CURRENT.readonly) return;
+  const m = getCurrentViewMonth();
+  if (m.readonly) return;
   const order=['pending','done','paused'];
-  const arr = CURRENT[portfolio];
+  const arr = m[portfolio];
   arr[idx].status = order[(order.indexOf(arr[idx].status)+1)%3];
+  CURRENT = m;
   saveCurrentMonth(CURRENT); renderAll();
   toast(arr[idx].ticker+' → '+arr[idx].status);
 }
 function removePos(portfolio, idx) {
-  CURRENT[portfolio].splice(idx,1);
+  const m = getCurrentViewMonth();
+  if (m.readonly) return;
+  m[portfolio].splice(idx,1);
+  CURRENT = m;
   saveCurrentMonth(CURRENT); renderAll(); toast('Odebráno');
 }
 function addPosition() {
@@ -674,19 +699,19 @@ function addPosition() {
   const type = document.getElementById('f-type').value;
   const from = document.getElementById('f-from').value.trim();
   if(!ticker||!amount){toast('Vyplň ticker a částku');return;}
-  CURRENT[portfolio].push({ticker,amount,status,note});
+  const m = getCurrentViewMonth();
+  if (m.readonly) { toast('Archivní měsíc nelze upravovat'); return; }
+  m[portfolio].push({ticker,amount,status,note});
   if(type){
-    CURRENT.changes.unshift({
+    m.changes.unshift({
       ticker,type,
       detail:from?`Přesun z ${from} → ${ticker}${note?' — '+note:''}`:(note||`${ticker} přidán`)
     });
   }
+  CURRENT = m;
   saveCurrentMonth(CURRENT);
-  // switch view to current month
-  viewIdx = getAllMonths().length - 1;
-  updateMonthNav();
   renderAll();
-  toast(ticker+' přidán');
+  toast(ticker+' přidán do '+m.label);
   ['f-ticker','f-amount','f-note','f-from'].forEach(id=>document.getElementById(id).value='');
 }
 
@@ -851,7 +876,7 @@ function renderAdd() {
   `).join('');
 
   document.getElementById('s-add').innerHTML = `
-    <div class="sec-h" style="margin-top:0;">Přidat pozici — ${CURRENT_MONTH_LABEL}</div>
+    <div class="sec-h" style="margin-top:0;">Přidat pozici — ${getCurrentViewMonth().label}</div>
     <div class="form-group">
       <label class="form-label">Ticker</label>
       <input class="form-input" id="f-ticker" placeholder="např. CEG" autocomplete="off" autocorrect="off" autocapitalize="characters"/>
@@ -898,7 +923,7 @@ function renderAdd() {
       <label class="form-label">Přesun z (volitelné)</label>
       <input class="form-input" id="f-from" placeholder="např. z 4GLD"/>
     </div>
-    <button class="submit-btn" onclick="addPosition()">Přidat do Dubna 2026</button>
+    <button class="submit-btn" onclick="addPosition()">Přidat do ${getCurrentViewMonth().label}</button>
     <div class="divider"></div>
     <div class="sec-h">Archiv — všechny měsíce</div>
     ${archiveHTML}
